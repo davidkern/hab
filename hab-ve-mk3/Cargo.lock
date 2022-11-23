@@ -42,6 +42,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anyhow"
+version = "1.0.66"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "216261ddc8289130e551ddcd5ce8a064710c0d064a4d2895c67151c92b5443f6"
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -341,6 +347,7 @@ dependencies = [
 name = "hab-ve-mk3"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bitflags",
  "bytes",
  "chrono",
@@ -349,7 +356,6 @@ dependencies = [
  "log",
  "pretty_env_logger",
  "serial-io",
- "thiserror",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -789,6 +795,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "num_cpus"
+version = "1.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6058e64324c71e02bc2b150e4f3bc8286db6c83092132ffa3f6b1eab0f9def5"
+dependencies = [
+ "hermit-abi",
+ "libc",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1177,6 +1193,7 @@ dependencies = [
  "libc",
  "memchr",
  "mio 0.8.5",
+ "num_cpus",
  "pin-project-lite",
  "socket2",
  "winapi 0.3.9",
