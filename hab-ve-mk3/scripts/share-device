@@ -1,0 +1,2 @@
+#!/bin/sh
+socat tcp-l:13400,reuseaddr,fork file:/dev/serial/by-id/usb-VictronEnergy_MK3-USB_Interface_HQ19125YEZ6-if00-port0,nonblock,waitlock=/var/run/usb-VictronEnergy_MK3-USB_Interface_HQ19125YEZ6-if00-port0.lock

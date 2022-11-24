@@ -14,7 +14,7 @@ clap = { version = "4.0.26", features = ["derive"] }
 influxdb = "0.5.2"
 log = "0.4.17"
 pretty_env_logger = "0.4.0"
-serial-io = "0.3.0"
+serial-io = { version = "0.3.0", features = ["tokio"] }
 tokio = { version = "1.22.0", features = ["rt-multi-thread"] }
 tokio-stream = "0.1.11"
 tokio-util = { version = "0.7.4", features = ["codec"] }

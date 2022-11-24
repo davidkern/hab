@@ -1,0 +1,2 @@
+#!/bin/sh
+socat tcp:habctl:13400 pty,link=/tmp/mk3,raw,echo=0,waitslave
