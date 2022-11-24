@@ -389,6 +389,7 @@ dependencies = [
  "bytes",
  "chrono",
  "clap",
+ "futures-util",
  "influxdb",
  "log",
  "pretty_env_logger",
