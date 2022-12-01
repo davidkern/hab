@@ -18,8 +18,10 @@ pub async fn run(path: &str) -> Result<()> {
             Ok(frame) => {
                 log::debug!("frame: {}", frame);
                 if let Frame::Version = frame {
-                    // request led status on each version frame
-                    mk3.send(RequestFrame::LedStatus).await;
+                    // request status on each version frame
+                    //mk3.send(RequestFrame::LedStatus).await?;
+                    mk3.send(RequestFrame::DcStatus).await?;
+                    mk3.send(RequestFrame::AcL1Status).await?;
                 }
             }
             Err(e) => {
@@ -44,8 +46,11 @@ impl Default for VeMk3Codec {
 
 #[derive(Clone, Debug)]
 pub enum Frame {
+    Unknown,
     Version,
     LedStatus { led_status: LedStatus },
+    Ac { ac: AcMeasurement },
+    Dc { dc: DcMeasurement },
 }
 
 #[derive(Clone, Debug)]
@@ -60,13 +65,59 @@ pub struct LedStatus {
     temperature: bool,
 }
 
+#[derive(Clone, Debug)]
+pub struct DcMeasurement {
+    voltage: f32,
+    inverter_current: f32,
+    inverter_watts: f32,
+    charger_current: f32,
+    charger_watts: f32,
+    inverter_frequency: f32,
+}
+
+#[derive(Clone, Debug)]
+pub enum AcState {
+    Down,
+    Startup,
+    Off,
+    Slave,
+    InvertFull,
+    InvertHalf,
+    InvertAes,
+    PowerAssist,
+    Bypass,
+    Charge,
+    Unknown,
+}
+
+#[derive(Clone, Debug)]
+pub struct AcMeasurement {
+    bf_factor: u8,
+    inverter_factor: u8,
+    state: AcState,
+    mains_voltage: f32,
+    mains_current: f32,
+    mains_watts: f32,
+    inverter_voltage: f32,
+    inverter_current: f32,
+    inverter_watts: f32,
+    mains_frequency: f32,
+}
+
 impl std::fmt::Display for Frame {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Unknown => { write!(f, "unknown") }
             Self::Version => { write!(f, "version") }
             Self::LedStatus {
                 led_status
             } => { write!(f, "led: {:?}", led_status) }
+            Self::Dc {
+                dc
+            } => { write!(f, "dc: {:?}", dc) }
+            Self::Ac {
+                ac
+            } => { write!(f, "ac: {:?}", ac) }
         }
     }
 }
@@ -74,16 +125,16 @@ impl std::fmt::Display for Frame {
 impl VeMk3Codec {
     fn decode_synchronized(&mut self, src: &mut BytesMut) -> Result<Option<Frame>> {
         let buffer = Vec::from(&src[..]);
-        log::debug!("decode sync buffer: {:?}", buffer);
+        log::trace!("decode sync buffer: {:?}", buffer);
 
         if src.len() < 1 {
-            log::debug!("decode sync, waiting for length byte");
+            log::trace!("decode sync, waiting for length byte");
             Ok(None)
         } else {
             let expected_len: usize = <u8 as Into<usize>>::into(src[0]) + 2;
 
             if src.len() < expected_len {
-                log::debug!("decode sync, waiting for expected length");
+                log::trace!("decode sync, waiting for expected length");
                 Ok(None)
             } else {
                 let result = {
@@ -106,6 +157,8 @@ impl VeMk3Codec {
                                 temperature: active & 0x80 != 0,    
                             }
                         }))
+                    } else if src[1] == 0x20 {
+                        Ok(Some(decode_info_frame(&src[2..16])))
                     } else {
                         Ok(None)
                     }    
@@ -120,14 +173,14 @@ impl VeMk3Codec {
         // wait for a version frame, which is 9 bytes long
         // NOTE: future versions could be longer which will break this logic
         let buffer = Vec::from(&src[..]);
-        log::debug!("decode unsync buffer: {:?}", buffer);
+        log::trace!("decode unsync buffer: {:?}", buffer);
 
         if src.len() < 9 {
-            log::debug!("decode unsync, waiting for enough bytes");
+            log::trace!("decode unsync, waiting for enough bytes");
             Ok(None)
         } else {
             if src[0] == 0x07 && src[1] == 0xff && src[2] == 0x56 && checksum_ok(&src[0..9]) {
-                log::debug!("decode unsync version frame");
+                log::trace!("decode unsync version frame");
                 // received a version frame, now synced
                 self.synchronized = true;
                 src.advance(9);
@@ -146,10 +199,10 @@ impl VeMk3Codec {
 
                 if index < src.len() {
                     // found, discard items up to index
-                    log::debug!("decode unsync discarded {} to next potential", index);
+                    log::trace!("decode unsync discarded {} to next potential", index);
                     src.advance(index);
                 } else {
-                    log::debug!("decode unsync discarded entire buffer");
+                    log::trace!("decode unsync discarded entire buffer");
                     src.advance(src.len());
                 }
 
@@ -159,12 +212,70 @@ impl VeMk3Codec {
     }
 }
 
+fn decode_info_frame(d: &[u8]) -> Frame {
+    let phase_info = d[4];
+    if phase_info == 0x0c {
+        // DC
+        let voltage = ((d[6] as f32) * 256.0 + (d[5] as f32)) / 100.0;
+        let inverter_current = ((d[9] as f32) * 65536.0 + (d[8] as f32) * 256.0 + (d[7] as f32)) / 10.0;
+        let charger_current = ((d[12] as f32) * 65536.0 + (d[11] as f32) * 256.0 + (d[10] as f32)) / 10.0;
+
+        Frame::Dc {
+            dc: DcMeasurement {
+                voltage,
+                inverter_current,
+                inverter_watts: voltage * inverter_current,
+                charger_current,
+                charger_watts: voltage * charger_current,
+                inverter_frequency: 10000.0 / (d[13] as f32),            
+            }
+        }
+    } else if phase_info >= 0x05 && phase_info <= 0x0b {
+        // AC
+        let state = match d[3] {
+            0x00 => AcState::Down,
+            0x01 => AcState::Startup,
+            0x02 => AcState::Off,
+            0x03 => AcState::Slave,
+            0x04 => AcState::InvertFull,
+            0x05 => AcState::InvertHalf,
+            0x06 => AcState::InvertAes,
+            0x07 => AcState::PowerAssist,
+            0x08 => AcState::Bypass,
+            0x09 => AcState::Charge,
+            _ => AcState::Unknown,
+        };
+
+        let mains_voltage = ((d[6] as f32) * 256.0 + (d[5] as f32)) / 100.0;
+        let mains_current = ((d[8] as f32) * 256.0 + (d[7] as f32)) / 100.0;
+        let inverter_voltage = ((d[10] as f32) * 256.0 + (d[9] as f32)) / 100.0;
+        let inverter_current = ((d[12] as f32) * 256.0 + (d[11] as f32)) / 100.0;
+
+        Frame::Ac {
+            ac: AcMeasurement {
+                bf_factor: d[0],
+                inverter_factor: d[1],
+                state,
+                mains_voltage,
+                mains_current,
+                mains_watts: mains_voltage * mains_current,
+                inverter_voltage,
+                inverter_current,
+                inverter_watts: inverter_voltage * inverter_current,
+                mains_frequency: 10000.0 / (d[13] as f32),
+            }
+        }
+    } else {
+        Frame::Unknown
+    }
+}
+
 impl Decoder for VeMk3Codec {
     type Item = Frame;
     type Error = anyhow::Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        log::debug!("decode buffer is {} bytes", src.len());
+        log::trace!("decode buffer is {} bytes", src.len());
 
         match self.synchronized {
             true => self.decode_synchronized(src),
@@ -183,19 +294,21 @@ fn checksum_ok(src: &[u8]) -> bool {
     checksum == Wrapping(0)
 }
 
-fn checksum(src: &[u8]) -> u8 {
-    let mut checksum: Wrapping<u8> = Wrapping(0);
+// fn checksum(src: &[u8]) -> u8 {
+//     let mut checksum: Wrapping<u8> = Wrapping(0);
 
-    for v in src.iter() {
-        checksum -= Wrapping(*v);
-    }
+//     for v in src.iter() {
+//         checksum -= Wrapping(*v);
+//     }
 
-    checksum.0
-}
+//     checksum.0
+// }
 
 #[derive(Clone, Debug)]
 pub enum RequestFrame {
     LedStatus,
+    DcStatus,
+    AcL1Status,
 }
 
 impl Encoder<RequestFrame> for VeMk3Codec {
@@ -204,9 +317,22 @@ impl Encoder<RequestFrame> for VeMk3Codec {
     fn encode(&mut self, item: RequestFrame, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match item {
             RequestFrame::LedStatus => {
+                // request led status
                 let request = [0x02, 0xff, 0x4c, 0xb3];
                 dst.reserve(request.len());
                 dst.extend_from_slice(&request);
+            },
+            RequestFrame::DcStatus => {
+                // request DC status
+                let request = [0x03, 0xff, 0x46, 0x00, 0xb8];
+                dst.reserve(request.len());
+                dst.extend_from_slice(&request);                
+            }
+            RequestFrame::AcL1Status => {
+                // request DC status
+                let request = [0x03, 0xff, 0x46, 0x01, 0xb7];
+                dst.reserve(request.len());
+                dst.extend_from_slice(&request);                
             }
         }
 

@@ -1,3 +1,4 @@
+mod decoder;
 mod mk3;
 
 use anyhow::Result;
