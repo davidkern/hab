@@ -4,7 +4,8 @@ use bytes::{Buf, Bytes, BytesMut};
 use tokio_util::codec::{Decoder, Encoder, Framed};
 use tokio_stream::StreamExt;
 use std::num::Wrapping;
-use futures_util::sink::SinkExt;
+use futures_util::{sink::SinkExt, stream};
+use influxdb2::models::DataPoint;
 
 /// Store data from mk3 device into influxdb
 pub async fn run(config: &Config) -> Result<()> {
@@ -15,15 +16,105 @@ pub async fn run(config: &Config) -> Result<()> {
     let codec = VeMk3Codec::default();
     let mut mk3 = Framed::new(serial, codec);
 
+    let db = influxdb2::Client::new(&config.influxdb_url, &config.influxdb_org, &config.influxdb_token);
+    
     while let Some(result) = mk3.next().await {
         match result {
             Ok(frame) => {
                 log::debug!("frame: {}", frame);
-                if let Frame::Version = frame {
-                    // request status on each version frame
-                    //mk3.send(RequestFrame::LedStatus).await?;
-                    mk3.send(RequestFrame::DcStatus).await?;
-                    mk3.send(RequestFrame::AcL1Status).await?;
+                match frame {
+                    Frame::Version => {
+                        // request status on each version frame
+                        //mk3.send(RequestFrame::LedStatus).await?;
+                        mk3.send(RequestFrame::DcStatus).await?;
+                        mk3.send(RequestFrame::AcL1Status).await?;
+                    }
+                    Frame::LedStatus { led_status } => {
+                        match DataPoint::builder("multiplus")
+                            .field("mains", led_status.mains)
+                            .field("absorption", led_status.absorption)
+                            .field("bulk", led_status.bulk)
+                            .field("float", led_status.float)
+                            .field("inverter", led_status.inverter)
+                            .field("overload", led_status.overload)
+                            .field("low_battery", led_status.low_battery)
+                            .field("temperature", led_status.temperature)
+                            .build() {
+                                Ok(point) => {
+                                    let points = vec![point];
+                                    if let Err(err) = db.write("hab", stream::iter(points)).await {
+                                        log::debug!("failed to write led_status: {:?}", err);
+                                    }
+                                }
+    
+                                Err(err) => {
+                                    log::debug!("failed to build led_status point: {:?}", err);
+                                }    
+                            }
+                    }
+                    Frame::Ac { ac } => {
+                        let state = match ac.state {
+                            AcState::Down => "down",
+                            AcState::Startup => "startup",
+                            AcState::Off => "off",
+                            AcState::Slave => "slave",
+                            AcState::InvertFull => "invert-full",
+                            AcState::InvertHalf => "invert-half",
+                            AcState::InvertAes => "invert-aes",
+                            AcState::PowerAssist => "power-assist",
+                            AcState::Bypass => "bypass",
+                            AcState::Charge => "charge",
+                            AcState::Unknown => "unknown",                        
+                        };
+
+                        match DataPoint::builder("ac")
+                            .field("bf_factor", ac.bf_factor as f64)
+                            .field("inverter_factor", ac.inverter_factor as f64)
+                            .field("state", state)
+                            .field("mains_voltage", ac.mains_voltage as f64)
+                            .field("mains_current", ac.mains_current as f64)
+                            .field("mains_watts", ac.mains_watts as f64)
+                            .field("inverter_voltage", ac.inverter_voltage as f64)
+                            .field("inverter_current", ac.inverter_current as f64)
+                            .field("inverter_watts", ac.inverter_watts as f64)
+                            .field("mains_frequency", ac.mains_frequency as f64)
+                            .build() {
+                                Ok(point) => {
+                                    let points = vec![point];
+                                    if let Err(err) = db.write("hab", stream::iter(points)).await {
+                                        log::debug!("failed to write ac: {:?}", err);
+                                    }
+                                }
+    
+                                Err(err) => {
+                                    log::debug!("failed to build ac point: {:?}", err);
+                                }    
+                            }
+                    }
+                    Frame::Dc { dc } => {
+                        match DataPoint::builder("dc")
+                            .field("voltage", dc.voltage as f64)
+                            .field("inverter_current", dc.inverter_current as f64)
+                            .field("inverter_watts", dc.inverter_watts as f64)
+                            .field("charger_current", dc.charger_current as f64)
+                            .field("charger_watts", dc.charger_watts as f64)
+                            .field("inverter_frequency", dc.inverter_frequency as f64)
+                            .build() {
+
+                            Ok(point) => {
+                                let points = vec![point];
+                                if let Err(err) = db.write("hab", stream::iter(points)).await {
+                                    log::debug!("failed to write dc: {:?}", err);
+                                }
+                            }
+
+                            Err(err) => {
+                                log::debug!("failed to build dc point: {:?}", err);
+                            }
+                        }
+
+                    }
+                    _ => {}
                 }
             }
             Err(e) => {

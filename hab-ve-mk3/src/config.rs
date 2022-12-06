@@ -7,7 +7,7 @@ pub struct Config {
     pub mk3_port: String,
     pub influxdb_url: String,
     pub influxdb_org: String,
-    pub influxdb_key: String,
+    pub influxdb_token: String,
 }
 
 impl Config {
