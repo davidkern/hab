@@ -1,3 +1,4 @@
+mod config;
 mod decoder;
 mod mk3;
 
@@ -5,12 +6,13 @@ use anyhow::Result;
 use tokio::runtime::Runtime;
 
 fn main() -> Result<()> {
-    let rt = Runtime::new()?;
+    let config = config::Config::load()?;
 
-    rt.block_on(async {
+    let rt = Runtime::new()?;
+    rt.block_on(async move {
         pretty_env_logger::init();
 
-        mk3::run("/tmp/mk3").await?;
+        mk3::run(&config).await?;
 
         log::debug!("exiting");
         Ok(())

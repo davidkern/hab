@@ -1,0 +1,4 @@
+mk3_port = "/dev/serial/by-id/usb-VictronEnergy_MK3-USB_Interface_HQ19125YEZ6-if00-port0"
+influxdb_url = "http://monitor.hab.mju.io:8086/"
+influxdb_org = "hab"
+influxdb_key = "..."

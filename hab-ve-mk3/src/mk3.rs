@@ -1,4 +1,5 @@
 use anyhow::Result;
+use crate::config::Config;
 use bytes::{Buf, Bytes, BytesMut};
 use tokio_util::codec::{Decoder, Encoder, Framed};
 use tokio_stream::StreamExt;
@@ -6,7 +7,8 @@ use std::num::Wrapping;
 use futures_util::sink::SinkExt;
 
 /// Store data from mk3 device into influxdb
-pub async fn run(path: &str) -> Result<()> {
+pub async fn run(config: &Config) -> Result<()> {
+    let path = &config.mk3_port;
     let builder = serial_io::build(path, 2400);
     let serial = serial_io::AsyncSerial::from_builder(&builder)?;
 
