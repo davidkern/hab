@@ -1,2 +1,12 @@
-build/**
+# editors
+.vscode
+*.swp
+*~
 
+# python
+.venv
+
+# build
+/build*
+
+__pycache__/
