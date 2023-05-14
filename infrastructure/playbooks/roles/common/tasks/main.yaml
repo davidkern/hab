@@ -1,0 +1,6 @@
+---
+# This playbook contains common plays that will be run on all nodes.
+
+- name: Install ntp
+  apt: name=ntp state=present
+  tags: ntp

@@ -1,0 +1,11 @@
+# shows available recipes
+help:
+    @just -l
+
+# apply changes to inventory
+apply:
+    poetry run ansible-playbook -i inventory.yaml playbooks/site.yaml
+
+# plan changes without modifying inventory
+plan:
+    poetry run ansible-playbook --check -i inventory.yaml playbooks/site.yaml
