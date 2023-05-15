@@ -1,0 +1,38 @@
+---
+# Manage the Seeed Odyssey J1405 SBC server built into the Hab.
+#
+# The server connects to the hab environmental components
+# via USB, GPIO, I2C and SPI. Application containers handling
+# those components are hosted by nomad.
+#
+# This play sets up the server and container hosting environment.
+
+# Everything is sensitive to time, keep it up to date.
+- name: Install ntp
+  ansible.builtin.apt: name=ntp state=present
+
+# Install Hashicorp nomad, consul and vault
+- name: Add Hashicorp apt repository key
+  ansible.builtin.copy:
+    src: files/usr/share/keyrings/hashicorp.gpg
+    dest: /usr/share/keyrings/hashicorp.gpg
+  register: hashicorp_apt_key
+
+- name: Add Hashicorp apt repository
+  ansible.builtin.copy:
+    src: files/etc/apt/sources.list.d/hashicorp.list
+    dest: /etc/apt/sources.list.d/hashicorp.list
+  register: hashicorp_apt_repo
+
+- name: Update apt index
+  ansible.builtin.apt:
+    update_cache: yes
+  when: hashicorp_apt_key.changed or hashicorp_apt_repo.changed
+
+- name: Install Hashicorp binaries
+  ansible.builtin.apt:
+    name: "{{item}}"
+  loop:
+    - consul
+    - vault
+    - nomad

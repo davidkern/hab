@@ -8,4 +8,4 @@ apply:
 
 # plan changes without modifying inventory
 plan:
-    poetry run ansible-playbook --check -i inventory.yaml playbooks/site.yaml
+    poetry run ansible-playbook -i inventory.yaml playbooks/site.yaml --check

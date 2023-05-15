@@ -1,5 +1,5 @@
-- name: apply common configuration to all nodes
-  hosts: all
-  become: true
+- name: setup hab server
+  hosts: habctl.hab.mju.io
+  become: yes
   roles:
-    - common
+    - hab-server
