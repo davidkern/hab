@@ -29,10 +29,31 @@
     update_cache: yes
   when: hashicorp_apt_key.changed or hashicorp_apt_repo.changed
 
-- name: Install Hashicorp binaries
+- name: Install Hashicorp services
   ansible.builtin.apt:
     name: "{{item}}"
   loop:
     - consul
     - vault
     - nomad
+
+# Configure the Hashicorp services
+
+- name: Configure Hashicorp services
+  ansible.builtin.copy:
+    src: "files/etc/{{item}}"
+    dest: "/etc/{{item}}"
+  loop:
+    - consul.d/consul.hcl
+    - vault.d/vault.hcl
+
+# Enable and start Hashicorp services
+
+- name: Enable and start Hashicorp services
+  ansible.builtin.systemd:
+    name: "{{item}}"
+    state: started
+    enabled: yes
+  loop:
+    - consul
+    - vault
