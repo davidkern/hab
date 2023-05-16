@@ -7,11 +7,19 @@
 #
 # This play sets up the server and container hosting environment.
 
-# Everything is sensitive to time, keep it up to date.
-- name: Install ntp
-  ansible.builtin.apt: name=ntp state=present
+# Install packages
+
+- name: Installing apt packages
+  ansible.builtin.apt:
+    name: "{{item}}"
+  loop:
+    - chrony
+    - docker.io
+    - influxdb
+    - postgresql
 
 # Install Hashicorp nomad, consul and vault
+
 - name: Add Hashicorp apt repository key
   ansible.builtin.copy:
     src: files/usr/share/keyrings/hashicorp.gpg
