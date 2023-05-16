@@ -46,6 +46,7 @@
   loop:
     - consul.d/consul.hcl
     - vault.d/vault.hcl
+    - nomad.d/nomad.hcl
 
 # Enable and start Hashicorp services
 
@@ -57,3 +58,5 @@
   loop:
     - consul
     - vault
+    - nomad
+
