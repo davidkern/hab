@@ -33,3 +33,23 @@ ui {
   }
 }
 
+plugin "docker" {
+  config {
+    gc {
+      image       = true
+      image_delay = "3m"
+      container   = true
+
+      dangling_containers {
+        enabled        = true
+        dry_run        = false
+        period         = "5m"
+        creation_grace = "5m"
+      }
+    }
+    volumes {
+      enabled      = true
+      selinuxlabel = "z"
+    }
+  }
+}
