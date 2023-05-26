@@ -7,6 +7,22 @@
 #
 # This play sets up the server and container hosting environment.
 
+# Mount storage
+
+- name: Mount 10TB spinning storage to /mnt/archive 
+  ansible.posix.mount:
+    path: /mnt/archive
+    src: /dev/disk/by-id/scsi-SATA_WDC_WD101KFBX-68_1EJA449Z-part1
+    fstype: ext4
+    state: mounted
+
+- name: Mount 2TB sata ssd storage to /mnt/scratch
+  ansible.posix.mount:
+    path: /mnt/scratch
+    src: /dev/disk/by-id/scsi-SATA_WDC_WDS200T2B0B_1902B9800300-part1
+    fstype: ext4
+    state: mounted
+
 # Install packages
 
 - name: Installing apt packages
@@ -17,6 +33,16 @@
     - docker.io
     - influxdb
     - postgresql
+    - samba
+
+# Publish file shares
+
+- name: Configure Samba shares
+  ansible.builtin.copy:
+    src: files/etc/samba/smb.conf
+    dest: /etc/samba/smb.conf
+  notify:
+    - Restart samba
 
 # Install Hashicorp nomad, consul and vault
 
