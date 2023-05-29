@@ -29,6 +29,8 @@
   ansible.builtin.apt:
     name: "{{item}}"
   loop:
+    - certbot
+    - python3-certbot-dns-digitalocean
     - chrony
     - docker.io
     - influxdb
@@ -43,6 +45,24 @@
     dest: /etc/samba/smb.conf
   notify:
     - Restart samba
+
+# Request SSL certificate from certbot
+
+- name: Set certbot credentials
+  ansible.builtin.copy:
+    dest: /etc/certbot-creds.ini
+    content: "dns_digitalocean_token = {{digitalocean_api_token}}"
+    mode: 0600
+
+- name: Check for issues *.hab.mju.io certificate
+  ansible.builtin.stat:
+    path: /etc/letsencrypt/live/hab.mju.io/fullchain.pem
+  register: certificate
+
+- name: Request *.hab.mju.io certificate from letsencrypt
+  ansible.builtin.shell: |
+    certbot certonly --dns-digitalocean --dns-digitalocean-credentials /etc/certbot-creds.ini -d {{letsencrypt_domain}} -d *.{{letsencrypt_domain}} -m {{letsencrypt_email}} --agree-tos -n
+  when: not certificate.stat.exists
 
 # Install Hashicorp nomad, consul and vault
 
