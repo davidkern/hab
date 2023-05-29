@@ -2,10 +2,30 @@
 help:
     @just -l
 
+# get ansible-vault password from bitwarden
+login:
+    #!/bin/bash
+    if [ "$(bw login --check --response | jq .success)" == "true" ]; then
+    # if we are already logged in, then we can't get the session key
+    # and getting the password will prompt for the password _again_.
+
+        # so just logout
+        bw logout
+    fi
+    export BW_SESSION=$(bw login --raw)
+    touch .ansible-vault-password
+    chmod 0600 .ansible-vault-password
+    bw get password ansible-vault > .ansible-vault-password
+
+# logout of bitwarden and remove ansible-vault password file
+logout:
+    rm .ansible-vault-password
+    bw logout
+
 # apply changes to inventory
 apply:
-    poetry run ansible-playbook -i inventory.yaml playbooks/site.yaml
+    poetry run ansible-playbook --vault-password-file .ansible-vault-password -i inventory.yaml playbooks/site.yaml
 
 # plan changes without modifying inventory
 plan:
-    poetry run ansible-playbook -i inventory.yaml playbooks/site.yaml --check
+    poetry run ansible-playbook --vault-password-file .ansible-vault-password -i inventory.yaml playbooks/site.yaml --check
