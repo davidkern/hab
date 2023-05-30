@@ -18,14 +18,6 @@ client {
 ui {
   enabled =  true
 
-  consul {
-    ui_url = "https://habctl.hab.mju.io:8500/ui"
-  }
-
-  vault {
-    ui_url = "http://habctl.hab.mju.io:8200/ui"
-  }
-
   label {
     text             = "Hab"
     background_color = "white"

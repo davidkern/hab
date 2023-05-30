@@ -64,7 +64,7 @@
     certbot certonly --dns-digitalocean --dns-digitalocean-credentials /etc/certbot-creds.ini -d {{letsencrypt_domain}} -d *.{{letsencrypt_domain}} -m {{letsencrypt_email}} --agree-tos -n
   when: not certificate.stat.exists
 
-# Install Hashicorp nomad, consul and vault
+# Install Hashicorp nomad
 
 - name: Add Hashicorp apt repository key
   ansible.builtin.copy:
@@ -87,8 +87,6 @@
   ansible.builtin.apt:
     name: "{{item}}"
   loop:
-    - consul
-    - vault
     - nomad
 
 # Configure the Hashicorp services
@@ -98,8 +96,6 @@
     src: "files/etc/{{item}}"
     dest: "/etc/{{item}}"
   loop:
-    - consul.d/consul.hcl
-    - vault.d/vault.hcl
     - nomad.d/nomad.hcl
 
 # Enable and start Hashicorp services
@@ -110,6 +106,4 @@
     state: started
     enabled: yes
   loop:
-    - consul
-    - vault
     - nomad

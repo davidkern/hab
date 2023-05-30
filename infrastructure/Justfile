@@ -24,7 +24,7 @@ logout:
 
 # apply changes to inventory
 apply:
-    poetry run ansible-playbook --vault-password-file /tmp/ansible-vault-password -i inventory.yaml playbooks/site.yaml
+    poetry run ansible-playbook --vault-password-file .ansible-vault-password -i inventory.yaml playbooks/site.yaml
 
 # plan changes without modifying inventory
 plan:
