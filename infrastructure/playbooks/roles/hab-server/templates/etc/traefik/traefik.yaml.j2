@@ -1,0 +1,45 @@
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+
+providers:
+  file:
+    filename: /etc/traefik/traefik-routes.yaml
+  nomad:
+    endpoint:
+      address: http://10.42.0.2:4646
+#      token: <replace with Nomad ACL token>
+    exposedByDefault: false
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: {{letsencrypt_email}}
+      storage: /var/lib/traefik/acme.json
+      dnsChallenge:
+        provider: digitalocean
+        delayBeforeCheck: 0
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"
+
+api:
+  dashboard: true
+
+accessLog:
+  filePath: /var/log/traefik/access.log
+  fields:
+    headers:
+      names:
+        User-Agent: keep
+
+log:
+  filePath: /var/log/traefik/traefik.log
+  level: INFO

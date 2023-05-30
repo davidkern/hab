@@ -1,0 +1,17 @@
+http:
+  routers:
+    dashboard:
+      rule: "Host(`traefik.hab.mju.io`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      tls:
+        certResolver: letsencrypt
+      service: api@internal
+    nomad:
+      rule: "Host(`nomad.hab.mju.io`)"
+      tls:
+        certResolver: letsencrypt
+      service: nomad
+  services:
+    nomad:
+      loadBalancer:
+        servers:
+          - url: "http://10.42.0.2:4646/"

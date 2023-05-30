@@ -4,3 +4,8 @@
   ansible.builtin.service:
     name: smbd
     state: restarted
+
+- name: Restart traefik
+  ansible.builtin.service:
+    name: traefik
+    state: restarted

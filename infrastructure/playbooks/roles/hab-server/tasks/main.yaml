@@ -29,8 +29,6 @@
   ansible.builtin.apt:
     name: "{{item}}"
   loop:
-    - certbot
-    - python3-certbot-dns-digitalocean
     - chrony
     - docker.io
     - influxdb
@@ -48,21 +46,80 @@
 
 # Request SSL certificate from certbot
 
-- name: Set certbot credentials
-  ansible.builtin.copy:
-    dest: /etc/certbot-creds.ini
-    content: "dns_digitalocean_token = {{digitalocean_api_token}}"
-    mode: 0600
+# - name: Set certbot credentials
+#   ansible.builtin.copy:
+#     dest: /etc/certbot-creds.ini
+#     content: "dns_digitalocean_token = {{digitalocean_api_token}}"
+#     mode: 0600
 
-- name: Check for issues *.hab.mju.io certificate
+# - name: Check for issues *.hab.mju.io certificate
+#   ansible.builtin.stat:
+#     path: /etc/letsencrypt/live/hab.mju.io/fullchain.pem
+#   register: certificate
+
+# - name: Request *.hab.mju.io certificate from letsencrypt
+#   ansible.builtin.shell: |
+#     certbot certonly --dns-digitalocean --dns-digitalocean-credentials /etc/certbot-creds.ini -d {{letsencrypt_domain}} -d *.{{letsencrypt_domain}} -m {{letsencrypt_email}} --agree-tos -n
+#   when: not certificate.stat.exists
+
+# Install Traefik ingress
+
+- name: Check if traefik is installed
   ansible.builtin.stat:
-    path: /etc/letsencrypt/live/hab.mju.io/fullchain.pem
-  register: certificate
+    path: /usr/local/bin/traefik
+  register: traefik_bin
 
-- name: Request *.hab.mju.io certificate from letsencrypt
-  ansible.builtin.shell: |
-    certbot certonly --dns-digitalocean --dns-digitalocean-credentials /etc/certbot-creds.ini -d {{letsencrypt_domain}} -d *.{{letsencrypt_domain}} -m {{letsencrypt_email}} --agree-tos -n
-  when: not certificate.stat.exists
+- name: Install the traefik binary
+  ansible.builtin.unarchive:
+    remote_src: yes
+    dest: /usr/local/bin
+    src: "https://github.com/traefik/traefik/releases/download/v2.10.1/traefik_v2.10.1_linux_amd64.tar.gz"
+    include: traefik
+  when: not traefik_bin.stat.exists
+
+- name: Create traefik configuration directory
+  ansible.builtin.file:
+    path: /etc/traefik
+    state: directory
+
+- name: Create traefik log and lib directory
+  ansible.builtin.file:
+    path: "{{item}}"
+    state: directory
+    owner: root
+    group: traefik
+    mode: 0775
+  loop:
+    - /var/log/traefik
+    - /var/lib/traefik
+
+- name: Create traefik user
+  ansible.builtin.user:
+    name: traefik
+    system: yes
+
+- name: Configure traefik
+  ansible.builtin.template:
+    src: templates/etc/traefik/traefik.yaml.j2
+    dest: /etc/traefik/traefik.yaml
+  notify: Restart traefik
+
+- name: Configure traefik static routes
+  ansible.builtin.copy:
+    src: files/etc/traefik/traefik-routes.yaml
+    dest: /etc/traefik/traefik-routes.yaml
+  notify: Restart traefik
+
+- name: Configure traefik systemd service
+  ansible.builtin.template:
+    src: templates/etc/systemd/system/traefik.service.j2
+    dest: /etc/systemd/system/traefik.service
+
+- name: Enable and start traefik
+  ansible.builtin.systemd:
+    name: traefik
+    state: started
+    enabled: yes
 
 # Install Hashicorp nomad
 
