@@ -18,14 +18,6 @@ client {
 ui {
   enabled =  true
 
-  consul {
-    ui_url = "https://habctl.hab.mju.io:8500/ui"
-  }
-
-  vault {
-    ui_url = "http://habctl.hab.mju.io:8200/ui"
-  }
-
   label {
     text             = "Hab"
     background_color = "white"
@@ -33,3 +25,23 @@ ui {
   }
 }
 
+plugin "docker" {
+  config {
+    gc {
+      image       = true
+      image_delay = "3m"
+      container   = true
+
+      dangling_containers {
+        enabled        = true
+        dry_run        = false
+        period         = "5m"
+        creation_grace = "5m"
+      }
+    }
+    volumes {
+      enabled      = true
+      selinuxlabel = "z"
+    }
+  }
+}

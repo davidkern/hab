@@ -9,7 +9,7 @@ use influxdb2::models::DataPoint;
 
 /// Store data from mk3 device into influxdb
 pub async fn run(config: &Config) -> Result<()> {
-    let path = &config.mk3_port;
+    let path = &config.mk3_path;
     let builder = serial_io::build(path, 2400);
     let serial = serial_io::AsyncSerial::from_builder(&builder)?;
 

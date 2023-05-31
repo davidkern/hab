@@ -7,11 +7,139 @@
 #
 # This play sets up the server and container hosting environment.
 
-# Everything is sensitive to time, keep it up to date.
-- name: Install ntp
-  ansible.builtin.apt: name=ntp state=present
+# Mount storage
 
-# Install Hashicorp nomad, consul and vault
+- name: Mount 10TB spinning storage to /mnt/archive 
+  ansible.posix.mount:
+    path: /mnt/archive
+    src: /dev/disk/by-id/scsi-SATA_WDC_WD101KFBX-68_1EJA449Z-part1
+    fstype: ext4
+    state: mounted
+
+- name: Mount 2TB sata ssd storage to /mnt/scratch
+  ansible.posix.mount:
+    path: /mnt/scratch
+    src: /dev/disk/by-id/scsi-SATA_WDC_WDS200T2B0B_1902B9800300-part1
+    fstype: ext4
+    state: mounted
+
+# Install packages
+
+- name: Installing apt packages
+  ansible.builtin.apt:
+    name: "{{item}}"
+  loop:
+    - chrony
+    - docker.io
+    - postgresql
+    - samba
+
+# Publish file shares
+
+- name: Configure Samba shares
+  ansible.builtin.copy:
+    src: files/etc/samba/smb.conf
+    dest: /etc/samba/smb.conf
+  notify:
+    - Restart samba
+
+# Request SSL certificate from certbot
+
+# - name: Set certbot credentials
+#   ansible.builtin.copy:
+#     dest: /etc/certbot-creds.ini
+#     content: "dns_digitalocean_token = {{digitalocean_api_token}}"
+#     mode: 0600
+
+# - name: Check for issues *.hab.mju.io certificate
+#   ansible.builtin.stat:
+#     path: /etc/letsencrypt/live/hab.mju.io/fullchain.pem
+#   register: certificate
+
+# - name: Request *.hab.mju.io certificate from letsencrypt
+#   ansible.builtin.shell: |
+#     certbot certonly --dns-digitalocean --dns-digitalocean-credentials /etc/certbot-creds.ini -d {{letsencrypt_domain}} -d *.{{letsencrypt_domain}} -m {{letsencrypt_email}} --agree-tos -n
+#   when: not certificate.stat.exists
+
+# Install InfluxDB 2
+
+- name: Check if influxdb2 is installed
+  ansible.builtin.stat:
+    path: /usr/bin/influxd
+  register: influxdb_bin
+
+- name: Install InfluxDB 2
+  ansible.builtin.apt:
+    deb: https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.0-amd64.deb
+  when: not influxdb_bin.stat.exists
+
+- name: Enable and start InfluxDB service
+  ansible.builtin.systemd:
+    name: influxdb
+    state: started
+    enabled: yes
+  
+# Install Traefik ingress
+
+- name: Check if traefik is installed
+  ansible.builtin.stat:
+    path: /usr/local/bin/traefik
+  register: traefik_bin
+
+- name: Install the traefik binary
+  ansible.builtin.unarchive:
+    remote_src: yes
+    dest: /usr/local/bin
+    src: "https://github.com/traefik/traefik/releases/download/v2.10.1/traefik_v2.10.1_linux_amd64.tar.gz"
+    include: traefik
+  when: not traefik_bin.stat.exists
+
+- name: Create traefik configuration directory
+  ansible.builtin.file:
+    path: /etc/traefik
+    state: directory
+
+- name: Create traefik log and lib directory
+  ansible.builtin.file:
+    path: "{{item}}"
+    state: directory
+    owner: root
+    group: traefik
+    mode: 0775
+  loop:
+    - /var/log/traefik
+    - /var/lib/traefik
+
+- name: Create traefik user
+  ansible.builtin.user:
+    name: traefik
+    system: yes
+
+- name: Configure traefik
+  ansible.builtin.template:
+    src: templates/etc/traefik/traefik.yaml.j2
+    dest: /etc/traefik/traefik.yaml
+  notify: Restart traefik
+
+- name: Configure traefik static routes
+  ansible.builtin.copy:
+    src: files/etc/traefik/traefik-routes.yaml
+    dest: /etc/traefik/traefik-routes.yaml
+  notify: Restart traefik
+
+- name: Configure traefik systemd service
+  ansible.builtin.template:
+    src: templates/etc/systemd/system/traefik.service.j2
+    dest: /etc/systemd/system/traefik.service
+
+- name: Enable and start traefik
+  ansible.builtin.systemd:
+    name: traefik
+    state: started
+    enabled: yes
+
+# Install Hashicorp nomad
+
 - name: Add Hashicorp apt repository key
   ansible.builtin.copy:
     src: files/usr/share/keyrings/hashicorp.gpg
@@ -33,8 +161,6 @@
   ansible.builtin.apt:
     name: "{{item}}"
   loop:
-    - consul
-    - vault
     - nomad
 
 # Configure the Hashicorp services
@@ -44,8 +170,6 @@
     src: "files/etc/{{item}}"
     dest: "/etc/{{item}}"
   loop:
-    - consul.d/consul.hcl
-    - vault.d/vault.hcl
     - nomad.d/nomad.hcl
 
 # Enable and start Hashicorp services
@@ -56,7 +180,4 @@
     state: started
     enabled: yes
   loop:
-    - consul
-    - vault
     - nomad
-

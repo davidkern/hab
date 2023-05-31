@@ -1,0 +1,27 @@
+http:
+  routers:
+    dashboard:
+      rule: "Host(`traefik.hab.mju.io`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+      tls:
+        certResolver: letsencrypt
+      service: api@internal
+    nomad:
+      rule: "Host(`nomad.hab.mju.io`)"
+      tls:
+        certResolver: letsencrypt
+      service: nomad
+    influxdb:
+      rule: "Host(`influxdb.hab.mju.io`)"
+      tls:
+        certResolver: letsencrypt
+      service: influxdb
+  
+  services:
+    nomad:
+      loadBalancer:
+        servers:
+          - url: "http://10.42.0.2:4646/"
+    influxdb:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8086/"
