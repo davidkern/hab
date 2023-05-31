@@ -31,7 +31,6 @@
   loop:
     - chrony
     - docker.io
-    - influxdb
     - postgresql
     - samba
 
@@ -62,6 +61,24 @@
 #     certbot certonly --dns-digitalocean --dns-digitalocean-credentials /etc/certbot-creds.ini -d {{letsencrypt_domain}} -d *.{{letsencrypt_domain}} -m {{letsencrypt_email}} --agree-tos -n
 #   when: not certificate.stat.exists
 
+# Install InfluxDB 2
+
+- name: Check if influxdb2 is installed
+  ansible.builtin.stat:
+    path: /usr/bin/influxd
+  register: influxdb_bin
+
+- name: Install InfluxDB 2
+  ansible.builtin.apt:
+    deb: https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.0-amd64.deb
+  when: not influxdb_bin.stat.exists
+
+- name: Enable and start InfluxDB service
+  ansible.builtin.systemd:
+    name: influxdb
+    state: started
+    enabled: yes
+  
 # Install Traefik ingress
 
 - name: Check if traefik is installed
