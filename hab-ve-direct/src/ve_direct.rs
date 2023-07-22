@@ -2,27 +2,29 @@
 use anyhow::Result;
 use bitflags::bitflags;
 use bytes::{Buf, BytesMut};
+use futures_util::stream;
+use influxdb2::models::DataPoint;
 use serde::Serialize;
 use serial_io::{build, AsyncSerial};
+use std::fmt::Display;
 use std::num::Wrapping;
 use std::str;
-use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
-use tokio::time::{sleep, Duration};
 use tokio_stream::StreamExt;
 use tokio_util::codec::{Decoder, FramedRead};
 
 use crate::config::Config;
 
-pub struct VeDirectMppt {
-    config: Config,
-    pub telemetry: Mutex<MpptFrame>,
-}
-
 pub async fn run(config: &Config) -> Result<()> {
     log::trace!("{}: starting VeDirectMppt", config.device_name);
     let builder = build(config.ve_direct_path.as_str(), 19200);
     let serial = AsyncSerial::from_builder(&builder)?;
+
+    let db = influxdb2::Client::new(
+        &config.influxdb_url,
+        &config.influxdb_org,
+        &config.influxdb_token,
+    );
 
     let decoder = VeDirectMpptDecoder::default();
     let mut frame_reader = FramedRead::new(serial, decoder);
@@ -31,7 +33,45 @@ pub async fn run(config: &Config) -> Result<()> {
         match result {
             Ok(frame) => {
                 log::info!("{}: {}", config.device_name, frame);
-                //*self.telemetry.lock().unwrap() = frame;
+                let mut data = DataPoint::builder(&config.device_name);
+                if let Some(battery_voltage) = frame.battery_voltage {
+                    data = data.field("battery_voltage", battery_voltage as f64);
+                }
+                if let Some(panel_voltage) = frame.panel_voltage {
+                    data = data.field("panel_voltage", panel_voltage as f64);
+                }
+                if let Some(panel_power) = frame.panel_power {
+                    data = data.field("panel_power", panel_power as f64);
+                }
+                if let Some(battery_current) = frame.battery_current {
+                    data = data.field("battery_current", battery_current as f64);
+                }
+                if let Some(yield_total) = frame.yield_total {
+                    data = data.field("yield_total", yield_total as f64);
+                }
+                if let Some(yield_today) = frame.yield_today {
+                    data = data.field("yield_today", yield_today as f64);
+                }
+                if let Some(maximum_power_today) = frame.maximum_power_today {
+                    data = data.field("maximum_power_today", maximum_power_today as f64);
+                }
+                if let Some(error) = frame.error {
+                    data = data.field("error", error.to_string());
+                }
+                if let Some(state) = frame.state {
+                    data = data.field("state", state.to_string());
+                }
+                match data.build() {
+                    Ok(point) => {
+                        let points = vec![point];
+                        if let Err(err) = db.write("hab", stream::iter(points)).await {
+                            log::debug!("failed to write to influxdb: {:?}", err);
+                        }
+                    }
+                    Err(err) => {
+                        log::debug!("failed to build datapoint: {:?}", err);
+                    }
+                }
             }
             Err(e) => {
                 log::error!("error: {}", e);
@@ -507,6 +547,28 @@ pub enum StateOfOperation {
     ExternalControl,
 }
 
+impl Display for StateOfOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StateOfOperation::Off => write!(f, "Off"),
+            StateOfOperation::LowPower => write!(f, "Low Power"),
+            StateOfOperation::Fault => write!(f, "Fault"),
+            StateOfOperation::Bulk => write!(f, "Bulk"),
+            StateOfOperation::Absorption => write!(f, "Absorption"),
+            StateOfOperation::Float => write!(f, "Float"),
+            StateOfOperation::Storage => write!(f, "Storage"),
+            StateOfOperation::Equalize => write!(f, "Equalize"),
+            StateOfOperation::Inverting => write!(f, "Inverting"),
+            StateOfOperation::PowerSupply => write!(f, "Power Supply"),
+            StateOfOperation::StartingUp => write!(f, "Starting Up"),
+            StateOfOperation::RepeatedAbsorption => write!(f, "Repeated Absorption"),
+            StateOfOperation::AutoEqualize => write!(f, "Auto Equalize"),
+            StateOfOperation::BatterySafe => write!(f, "Battery Safe"),
+            StateOfOperation::ExternalControl => write!(f, "External Control"),
+        }
+    }
+}
+
 impl StateOfOperation {
     fn from_u32(val: u32) -> Option<Self> {
         match val {
@@ -552,6 +614,39 @@ pub enum ErrorCode {
     FactoryCalibrationDataLost,
     InvalidFirmware,
     InvalidUserSettings,
+}
+
+impl Display for ErrorCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorCode::NoError => write!(f, "No Error"),
+            ErrorCode::BatteryVoltageHigh => write!(f, "Battery Voltage High"),
+            ErrorCode::ChargerTemperatureHigh => write!(f, "Charger Temperature High"),
+            ErrorCode::ChargerCurrentHigh => write!(f, "Charger Current High"),
+            ErrorCode::ChargerCurrentReversed => write!(f, "Charger Current Reversed"),
+            ErrorCode::BulkTimeLimit => write!(f, "Bulk Time Limit"),
+            ErrorCode::CurrentSensor => write!(f, "Current Sensor"),
+            ErrorCode::TerminalTemperatureHigh => write!(f, "Terminal Temperature High"),
+            ErrorCode::Converter => write!(f, "Converter"),
+            ErrorCode::InputVoltageHigh => write!(f, "Input Voltage High"),
+            ErrorCode::InputCurrentHigh => write!(f, "Input Current High"),
+            ErrorCode::InputShutdownDueToBatteryVoltage => {
+                write!(f, "Input Shutdown Due To Battery Voltage")
+            }
+            ErrorCode::InputShutdownDueToCurrentFlowWhileOff => {
+                write!(f, "Input Shutdown Due To Current Flow While Off")
+            }
+            ErrorCode::LostCommunication => write!(f, "Lost Communication"),
+            ErrorCode::SynchronizedChargingConfiguration => {
+                write!(f, "Synchronized Charging Configuration")
+            }
+            ErrorCode::BmsConnectionLost => write!(f, "Bms Connection Lost"),
+            ErrorCode::NetworkMisconfigured => write!(f, "Network Misconfigured"),
+            ErrorCode::FactoryCalibrationDataLost => write!(f, "Factory Calibration Data Lost"),
+            ErrorCode::InvalidFirmware => write!(f, "Invalid Firmware"),
+            ErrorCode::InvalidUserSettings => write!(f, "Invalid User Settings"),
+        }
+    }
 }
 
 impl ErrorCode {

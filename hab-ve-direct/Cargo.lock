@@ -584,6 +584,7 @@ dependencies = [
  "bytes",
  "clap",
  "futures",
+ "futures-util",
  "influxdb2",
  "log",
  "pretty_env_logger",
