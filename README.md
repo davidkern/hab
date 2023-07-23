@@ -2,6 +2,7 @@
 
 Components for the HAB truck camper project
 
+* hab-api - api access to stored data
 * hab-ve-mk3 - stream stats from the victron multiplus into influxdb
 * hab-ve-direct - stream stats from the victron mppt controllers into influxdb 
 * habctl - (legacy) read from solar mppt controllers and serves current data with a web server
