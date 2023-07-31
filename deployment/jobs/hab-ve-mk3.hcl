@@ -11,7 +11,7 @@ job "hab-ve-mk3" {
       driver = "docker"
 
       config {
-        image = "registry.hab.mju.io/hab-ve-mk3:0.1.0-build4"
+        image = "registry.hab.mju.io/hab-ve-mk3:0.2.0-build2"
         devices = [
           {
             host_path = "/dev/serial/by-id/usb-VictronEnergy_MK3-USB_Interface_HQ19125YEZ6-if00-port0"

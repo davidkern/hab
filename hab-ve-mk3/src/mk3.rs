@@ -15,6 +15,7 @@ pub async fn run(config: &Config) -> Result<()> {
 
     let codec = VeMk3Codec::default();
     let mut mk3 = Framed::new(serial, codec);
+    mk3.send(RequestFrame::Version).await?;
 
     let db = influxdb2::Client::new(&config.influxdb_url, &config.influxdb_org, &config.influxdb_token);
     
@@ -399,6 +400,7 @@ fn checksum_ok(src: &[u8]) -> bool {
 
 #[derive(Clone, Debug)]
 pub enum RequestFrame {
+    Version,
     LedStatus,
     DcStatus,
     AcL1Status,
@@ -409,6 +411,11 @@ impl Encoder<RequestFrame> for VeMk3Codec {
 
     fn encode(&mut self, item: RequestFrame, dst: &mut BytesMut) -> Result<(), Self::Error> {
         match item {
+            RequestFrame::Version => {
+                let request = [0x02, 0xff, 0x56, 0xa9];
+                dst.reserve(request.len());
+                dst.extend_from_slice(&request);
+            }
             RequestFrame::LedStatus => {
                 // request led status
                 let request = [0x02, 0xff, 0x4c, 0xb3];
