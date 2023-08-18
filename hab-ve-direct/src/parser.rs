@@ -1,5 +1,5 @@
 use arrayvec::ArrayVec;
-use anyhow::{bail, Result};
+use anyhow::Result;
 use std::num::Wrapping;
 use std::str::from_utf8;
 #[cfg(test)]
@@ -8,7 +8,6 @@ use mockall::{automock, mock, predicate::*};
 // Constants defined in VE.Direct Protocol doc in "Implementation Guidelines" section.
 const LABEL_LEN: usize = 9;
 const VALUE_LEN: usize = 33;
-const FRAME_RECORDS: usize = 22;
 
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct Record {
