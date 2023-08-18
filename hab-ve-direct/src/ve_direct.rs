@@ -15,35 +15,45 @@ const BUFFER_SIZE: usize = 128;
 
 pub async fn run(config: &Config) -> Result<()> {
     log::trace!("{}: starting VeDirectMppt", config.device_name);
-    let builder = build(config.ve_direct_path.as_str(), 19200);
-    let mut serial = AsyncSerial::from_builder(&builder)?;
-
-    let db = influxdb2::Client::new(
-        &config.influxdb_url,
-        &config.influxdb_org,
-        &config.influxdb_token,
-    );
-
-    let mut ve_direct_mppt = VeDirectMppt::new(&config.device_name);
-    let mut parser = crate::parser::Parser::default();
-
-    let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
 
     loop {
-        // read from the device
-        let count = serial.read(&mut buffer[..]).await?;
+        let builder = build(config.ve_direct_path.as_str(), 19200);
+        let mut serial = AsyncSerial::from_builder(&builder)?;
+    
+        let db = influxdb2::Client::new(
+            &config.influxdb_url,
+            &config.influxdb_org,
+            &config.influxdb_token,
+        );
+    
+        let mut ve_direct_mppt = VeDirectMppt::new(&config.device_name);
+        let mut parser = crate::parser::Parser::default();
+    
+        let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
+    
+        loop {
+            // read from the device
+            let count = serial.read(&mut buffer[..]).await?;
+    
+            if count == 0 {
+                // no data, re-init connection
+                break;
+            }
 
-        // parse the read bytes
-        parser.parse(&mut ve_direct_mppt, &buffer[0..count])?;
-
-        // store decoded points
-        if ve_direct_mppt.points.len() > 0 {
-            let submission = ve_direct_mppt.points.clone();
-            ve_direct_mppt.points.clear();
-            if let Err(err) = db.write("hab", stream::iter(submission)).await {
-                log::debug!("failed to write to influxdb: {:?}", err);
+            // parse the read bytes
+            parser.parse(&mut ve_direct_mppt, &buffer[0..count])?;
+    
+            // store decoded points
+            if ve_direct_mppt.points.len() > 0 {
+                let submission = ve_direct_mppt.points.clone();
+                ve_direct_mppt.points.clear();
+                if let Err(err) = db.write("hab", stream::iter(submission)).await {
+                    log::debug!("failed to write to influxdb: {:?}", err);
+                }
             }
         }
+
+        log::warn!("closing and re-opening serial connection");
     }
 }
 
