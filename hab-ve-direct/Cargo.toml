@@ -1,13 +1,13 @@
 [package]
 name = "hab-ve-direct"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.72"
-bitflags = "1.2.1"
+bitflags = "2.4.0"
 bytes = "1.4.0"
 clap = { version = "4.3.19", features = ["derive"] }
 influxdb2 = "0.4.2"
@@ -21,3 +21,7 @@ tokio-stream = "0.1.14"
 tokio-util = { version = "0.7.8", features = ["codec"] }
 toml = "0.7.6"
 futures-util = "0.3.28"
+arrayvec = "0.7.4"
+
+[dev-dependencies]
+mockall = "0.11.4"

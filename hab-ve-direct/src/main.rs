@@ -1,4 +1,5 @@
 mod config;
+mod parser;
 mod ve_direct;
 
 use anyhow::Result;
