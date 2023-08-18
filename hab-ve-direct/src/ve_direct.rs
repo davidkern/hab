@@ -71,11 +71,21 @@ impl VeDirectMppt {
 
 impl ParseEvent for VeDirectMppt {
     fn record(&mut self, label: &str, value: &str) {
+        log::trace!("VeDirectMppt::record(\"{}\", \"{}\")", label, value);
         self.records.push((label.to_string(), value.to_string()));
     }
 
     fn checksum_valid(&mut self) {
         log::info!("{:?}", self.records);
+
+        // HACK: The ext MPPT sends data as two frames and the interleaving causes
+        // downstream data processing complications.
+        // It sends 9 and then 10 records, while the lil and big MPPTs send 18 records in a single frame.
+        // Combine frames here to work around the problem...
+        if self.records.len() < 18 {
+            log::trace!("VeDirectMppt::checksum_valid: not enough records yet");
+            return;
+        }
 
         let mut builder = DataPoint::builder(&self.device_name);
         for (label, value) in self.records.iter() {
@@ -200,6 +210,7 @@ impl ParseEvent for VeDirectMppt {
 
         match builder.build() {
             Ok(point) => {
+                log::trace!("VeDirectMppt::checksum_valid: pushing data");
                 self.points.push(point);
             }
             Err(err) => {

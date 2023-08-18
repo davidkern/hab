@@ -11,7 +11,7 @@ job "hab-ve-direct-lil" {
       driver = "docker"
 
       config {
-        image = "registry.hab.mju.io/hab-ve-direct:0.1.0-build1"
+        image = "registry.hab.mju.io/hab-ve-direct:0.2.1-build1"
         devices = [
           {
             host_path = "/dev/serial/by-id/usb-VictronEnergy_BV_VE_Direct_cable_VE46V0KW-if00-port0"

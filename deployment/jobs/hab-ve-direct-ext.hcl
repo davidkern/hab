@@ -11,7 +11,7 @@ job "hab-ve-direct-ext" {
       driver = "docker"
 
       config {
-        image = "registry.hab.mju.io/hab-ve-direct:0.1.0-build1"
+        image = "registry.hab.mju.io/hab-ve-direct:0.2.2-build1"
         devices = [
           {
             host_path = "/dev/serial/by-id/usb-VictronEnergy_BV_VE_Direct_cable_VE683RVF-if00-port0"
@@ -26,7 +26,7 @@ job "hab-ve-direct-ext" {
         data        = <<EOT
           {{ with nomadVar "nomad/jobs/hab-ve-mk3"}}
           RUST_BACKTRACE=1
-          RUST_LOG=debug
+          RUST_LOG=trace
           DEVICE_NAME="mppt_ext"
           VE_DIRECT_PATH="/dev/ve-direct"
           INFLUXDB_URL="{{ .INFLUXDB_URL }}"

@@ -48,6 +48,7 @@ pub struct Parser {
 
 impl Parser {
     pub fn parse<T: ParseEvent>(&mut self, parse_event: &mut T, inp: &[u8]) -> Result<()> {
+        log::trace!("Parse: {:?}", inp);
         inp.iter()
             .try_for_each(|b| self.parse_input_byte(parse_event, *b))
     }
@@ -73,12 +74,14 @@ impl Parser {
 
         match self.state {
             ParseState::Idle => {
+                log::trace!("ParseState::Idle");
                 if inp == NL {
                     self.record.clear();
                     self.state = ParseState::RecordLabel;
                 }
             }
             ParseState::RecordLabel => {
+                log::trace!("ParseState::RecordLabel");
                 if inp == TAB {
                     if self.record.label.as_slice() == CHECKSUM_LABEL {
                         self.state = ParseState::Checksum
@@ -90,6 +93,7 @@ impl Parser {
                 }
             }
             ParseState::RecordValue => {
+                log::trace!("ParseState::RecordValue");
                 match inp {
                     NL => {
                         parse_event.record(
@@ -108,6 +112,7 @@ impl Parser {
                 }
             }
             ParseState::Checksum => {
+                log::trace!("ParseState::Checksum");
                 self.state = ParseState::Idle;
                 if self.checksum == Wrapping::default() {
                     parse_event.checksum_valid();
@@ -117,6 +122,7 @@ impl Parser {
                 self.checksum = Wrapping::default();
             }
             ParseState::RecordHex => {
+                log::trace!("ParseState::RecordHex");
                 if inp == NL {
                     self.state = ParseState::Idle;
                 }
