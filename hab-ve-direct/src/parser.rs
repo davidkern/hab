@@ -113,6 +113,7 @@ impl Parser
                 } else {
                     parse_event.checksum_invalid();
                 }
+                self.checksum = Wrapping::default();
             }
             ParseState::RecordHex => {
                 if inp == NL {
