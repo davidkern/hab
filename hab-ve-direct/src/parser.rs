@@ -1,9 +1,9 @@
-use arrayvec::ArrayVec;
 use anyhow::Result;
+use arrayvec::ArrayVec;
+#[cfg(test)]
+use mockall::{automock, predicate::*};
 use std::num::Wrapping;
 use std::str::from_utf8;
-#[cfg(test)]
-use mockall::{automock, mock, predicate::*};
 
 // Constants defined in VE.Direct Protocol doc in "Implementation Guidelines" section.
 const LABEL_LEN: usize = 9;
@@ -40,17 +40,16 @@ pub enum ParseState {
 }
 
 #[derive(Debug, Default)]
-pub struct Parser
-{
+pub struct Parser {
     pub state: ParseState,
     pub record: Record,
     pub checksum: Wrapping<u8>,
 }
 
-impl Parser
-{
+impl Parser {
     pub fn parse<T: ParseEvent>(&mut self, parse_event: &mut T, inp: &[u8]) -> Result<()> {
-        inp.iter().try_for_each(|b| self.parse_input_byte(parse_event, *b))
+        inp.iter()
+            .try_for_each(|b| self.parse_input_byte(parse_event, *b))
     }
 
     pub fn parse_input_byte<T: ParseEvent>(&mut self, parse_event: &mut T, inp: u8) -> Result<()> {
@@ -93,7 +92,10 @@ impl Parser
             ParseState::RecordValue => {
                 match inp {
                     NL => {
-                        parse_event.record(from_utf8(self.record.label.as_slice())?, from_utf8(self.record.value.as_slice())?);
+                        parse_event.record(
+                            from_utf8(self.record.label.as_slice())?,
+                            from_utf8(self.record.value.as_slice())?,
+                        );
                         self.record.clear();
                         self.state = ParseState::RecordLabel;
                     }
@@ -136,8 +138,8 @@ pub fn to_upper(b: u8) -> u8 {
 
 #[cfg(test)]
 mod test {
-    use super::{MockParseEvent, Parser, ParseState, to_upper};
-    use mockall::{automock, mock, predicate::*};
+    use super::{MockParseEvent, ParseState, Parser};
+    use mockall::predicate::*;
 
     #[derive(Default)]
     struct Mock(MockParseEvent);
@@ -151,16 +153,14 @@ mod test {
         }
 
         fn expect_checksum_valid(&mut self) {
-            self.0
-                .expect_checksum_valid()
-                .returning(|| {});
+            self.0.expect_checksum_valid().returning(|| {});
         }
 
-        fn expect_checksum_invalid(&mut self) {
-            self.0
-                .expect_checksum_invalid()
-                .returning(|| {});
-        }
+        // fn expect_checksum_invalid(&mut self) {
+        //     self.0
+        //         .expect_checksum_invalid()
+        //         .returning(|| {});
+        // }
     }
 
     #[test]
@@ -180,7 +180,7 @@ mod test {
         mock.expect_checksum_valid();
 
         let mut parser = Parser::default();
-        parser.parse(&mut mock.0, data);
+        parser.parse(&mut mock.0, data).unwrap();
         assert_eq!(ParseState::Idle, parser.state);
     }
 
@@ -201,7 +201,7 @@ mod test {
         mock.expect_checksum_valid();
 
         let mut parser = Parser::default();
-        parser.parse(&mut mock.0, data);
+        parser.parse(&mut mock.0, data).unwrap();
         assert_eq!(ParseState::Idle, parser.state);
     }
 }

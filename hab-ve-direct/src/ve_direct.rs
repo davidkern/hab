@@ -1,4 +1,6 @@
 //! Victron VE-Direct interface
+use crate::config::Config;
+use crate::parser::ParseEvent;
 use anyhow::Result;
 use bitflags::bitflags;
 use futures_util::stream;
@@ -7,8 +9,6 @@ use serde::Serialize;
 use serial_io::{build, AsyncSerial};
 use std::fmt::Display;
 use std::str;
-use crate::parser::ParseEvent;
-use crate::config::Config;
 use tokio::io::AsyncReadExt;
 
 const BUFFER_SIZE: usize = 128;
@@ -169,6 +169,9 @@ impl ParseEvent for VeDirectMppt {
                 "FW" => {
                     builder = builder.field("firmware_version", value);
                 }
+                "FWE" => {
+                    builder = builder.field("firmware_version_24", value);
+                }
                 "PID" => {
                     if let Ok(v) = u32::from_str_radix(&value[2..], 16) {
                         builder = builder.field("product_id", v as i64);
@@ -192,7 +195,7 @@ impl ParseEvent for VeDirectMppt {
                 unknown => {
                     log::warn!("Skipping unknown field {}", unknown);
                 }
-            }    
+            }
         }
 
         match builder.build() {
@@ -404,9 +407,15 @@ impl Mppt {
 impl Display for Mppt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Mppt::Off => { write!(f, "Off") }
-            Mppt::VoltageOrCurrentLimited => { write!(f, "Voltage Or Current Limited") }
-            Mppt::MpptTrackerActive => { write!(f, "Mppt Tracker Active") }
+            Mppt::Off => {
+                write!(f, "Off")
+            }
+            Mppt::VoltageOrCurrentLimited => {
+                write!(f, "Voltage Or Current Limited")
+            }
+            Mppt::MpptTrackerActive => {
+                write!(f, "Mppt Tracker Active")
+            }
         }
     }
 }
