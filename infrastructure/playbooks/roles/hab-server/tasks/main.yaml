@@ -163,6 +163,16 @@
   loop:
     - nomad
 
+# Create nomad host volumes
+
+- name: Create nomad host volumes
+  ansible.builtin.file:
+    name: "{{item}}"
+    mode: "0770"
+    state: directory
+  loop:
+    - /volumes/unifi
+
 # Configure the Hashicorp services
 
 - name: Configure Hashicorp services
