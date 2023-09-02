@@ -13,6 +13,10 @@ server {
 client {
   enabled = true
   servers = ["127.0.0.1"]
+
+  host_volume "unifi" {
+    path = "/volumes/unifi"
+  }
 }
 
 ui {
