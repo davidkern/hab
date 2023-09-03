@@ -1,0 +1,6 @@
+# deny by default
+*
+# explicitly list included
+!infrastructure/terraform/
+# ignore
+.terraform
