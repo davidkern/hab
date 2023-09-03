@@ -1,4 +1,5 @@
 resource "routeros_interface_bridge_port" "scif_david" {
+    provider = routeros.scif
     bridge = "bridge"
     interface = "ether1"
     pvid = 100
@@ -6,6 +7,7 @@ resource "routeros_interface_bridge_port" "scif_david" {
 }
 
 resource "routeros_interface_bridge_port" "scif_unifi_ap" {
+    provider = routeros.scif
     bridge = "bridge"
     interface = "ether9"
     pvid = 100
@@ -13,6 +15,7 @@ resource "routeros_interface_bridge_port" "scif_unifi_ap" {
 }
 
 resource "routeros_interface_bridge_port" "scif_hab_uplink" {
+    provider = routeros.scif
     bridge = "bridge"
     interface = "ether10"
     pvid = 100
