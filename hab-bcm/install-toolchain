@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# install system packages for embedded development
+echo "Installing system packages..."
+if [ -f /etc/lsb-release ]; then
+    sudo apt update
+    sudo DEBIAN_FRONTEND=noninteractive apt install -y libudev-dev
+else
+    sudo dnf install systemd-devel
+fi
+
+# install components for embedded development
+echo "Installing cargo tools..."
+cargo install cargo-binutils cargo-expand
+cargo install probe-rs --features cli
+
+echo "Done."
