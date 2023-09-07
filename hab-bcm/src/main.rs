@@ -6,13 +6,10 @@ mod board;
 mod device;
 
 use board::{Board, StatusLed, OutdoorEnvSensor};
-use defmt::*;
-use device::led::Led;
+
+
 use embassy_executor::Spawner;
-use embassy_stm32::{
-    gpio::{AnyPin, Level, Output, Speed},
-    i2c::I2c,
-};
+
 use embassy_time::{Duration, Timer};
 
 use {defmt_rtt as _, panic_probe as _};
@@ -37,7 +34,7 @@ async fn blink_status(mut led: StatusLed) {
 }
 
 #[embassy_executor::task]
-async fn monitor_outdoor_env(mut sensor: OutdoorEnvSensor) {
+async fn monitor_outdoor_env(_sensor: OutdoorEnvSensor) {
     //let mut dev = Bme680::init(i2c, &mut delayer, I2CAddress::Primary)?;
     loop {
 

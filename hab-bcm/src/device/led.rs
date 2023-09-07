@@ -1,5 +1,5 @@
 use embassy_stm32::{
-    gpio::{AnyPin, Level, Output, Pin, Speed},
+    gpio::{Level, Output, Pin, Speed},
     Peripheral,
 };
 

@@ -1,6 +1,5 @@
 use embassy_stm32::{
-    gpio::Pin,
-    peripherals::{I2C1, PD12, self}, bind_interrupts, i2c,
+    peripherals::{PD12, self}, bind_interrupts, i2c,
 };
 
 use crate::device::{led::Led, bme680::Bme680};

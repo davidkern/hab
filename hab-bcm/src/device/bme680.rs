@@ -1,11 +1,10 @@
 use embassy_stm32::time::Hertz;
 use embassy_stm32::{
     dma::NoDma,
-    gpio::{AnyPin, Level, Output, Pin, Speed},
     i2c::{Instance, InterruptHandler},
     i2c::{SclPin, SdaPin},
     interrupt::typelevel::Binding,
-    Peripheral, PeripheralRef,
+    Peripheral,
 };
 
 pub struct Bme680<'d, T: Instance> {
