@@ -2,27 +2,44 @@
 #![no_main]
 #![feature(type_alias_impl_trait)]
 
+mod board;
+mod device;
+
+use board::{Board, StatusLed, OutdoorEnvSensor};
 use defmt::*;
+use device::led::Led;
 use embassy_executor::Spawner;
-use embassy_stm32::gpio::{Level, Output, Speed};
+use embassy_stm32::{
+    gpio::{AnyPin, Level, Output, Speed},
+    i2c::I2c,
+};
 use embassy_time::{Duration, Timer};
+
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
-async fn main(_spawner: Spawner) {
-    let p = embassy_stm32::init(Default::default());
+async fn main(spawner: Spawner) {
+    let board = Board::init();
 
-    info!("initializing hardware");
-    let mut led = Output::new(p.PB7, Level::High, Speed::Low);
+    spawner.spawn(blink_status(board.status_led)).unwrap();
+    spawner.spawn(monitor_outdoor_env(board.outdoor_env_sensor)).unwrap();
+}
 
-    info!("starting main loop");
+#[embassy_executor::task]
+async fn blink_status(mut led: StatusLed) {
     loop {
-        info!("high");
-        led.set_high();
+        led.on();
         Timer::after(Duration::from_millis(300)).await;
 
-        info!("low");
-        led.set_low();
-        Timer::after(Duration::from_millis(300)).await;
+        led.off();
+        Timer::after(Duration::from_millis(1000)).await;
+    }
+}
+
+#[embassy_executor::task]
+async fn monitor_outdoor_env(mut sensor: OutdoorEnvSensor) {
+    //let mut dev = Bme680::init(i2c, &mut delayer, I2CAddress::Primary)?;
+    loop {
+
     }
 }
