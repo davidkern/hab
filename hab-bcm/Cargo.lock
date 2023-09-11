@@ -87,6 +87,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
+name = "bme680"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7c32c5b6119009885390651a97833af8cd0ad87bd4528bec9c8c0554778ef43"
+dependencies = [
+ "bitflags",
+ "embedded-hal 0.2.7",
+ "log",
+]
+
+[[package]]
 name = "bxcan"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -702,6 +713,7 @@ dependencies = [
 name = "hab-bcm"
 version = "0.1.0"
 dependencies = [
+ "bme680",
  "chrono",
  "cortex-m",
  "cortex-m-rt",
@@ -769,6 +781,12 @@ dependencies = [
  "autocfg",
  "scopeguard",
 ]
+
+[[package]]
+name = "log"
+version = "0.4.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5e6163cb8c49088c2c36f57875e58ccd8c87c7427f7fbd50ea6710b2f3f2e8f"
 
 [[package]]
 name = "managed"

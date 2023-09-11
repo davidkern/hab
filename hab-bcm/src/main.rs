@@ -11,7 +11,7 @@ use board::{Board, StatusLed, OutdoorEnvSensor};
 use embassy_executor::Spawner;
 
 use embassy_time::{Duration, Timer};
-
+use defmt::println;
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
@@ -34,9 +34,15 @@ async fn blink_status(mut led: StatusLed) {
 }
 
 #[embassy_executor::task]
-async fn monitor_outdoor_env(_sensor: OutdoorEnvSensor) {
-    //let mut dev = Bme680::init(i2c, &mut delayer, I2CAddress::Primary)?;
+async fn monitor_outdoor_env(mut sensor: OutdoorEnvSensor) {
     loop {
+        let data = sensor.measure().await;
 
+        println!("Temperature {}°C", data.temperature_celsius);
+        println!("Pressure {}hPa", data.pressure_hpa);
+        println!("Humidity {}%", data.humidity_percent);
+        println!("Gas Resistance {}Ω", data.gas_resistance_ohm);
+
+        Timer::after(Duration::from_secs(5)).await;
     }
 }
