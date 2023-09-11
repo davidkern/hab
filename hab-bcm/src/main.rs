@@ -5,13 +5,12 @@
 mod board;
 mod device;
 
-use board::{Board, StatusLed, OutdoorEnvSensor};
-
+use board::{Board, OutdoorEnvSensor, StatusLed};
 
 use embassy_executor::Spawner;
 
-use embassy_time::{Duration, Timer};
 use defmt::println;
+use embassy_time::{Duration, Timer};
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
@@ -19,7 +18,9 @@ async fn main(spawner: Spawner) {
     let board = Board::init();
 
     spawner.spawn(blink_status(board.status_led)).unwrap();
-    spawner.spawn(monitor_outdoor_env(board.outdoor_env_sensor)).unwrap();
+    spawner
+        .spawn(monitor_outdoor_env(board.outdoor_env_sensor))
+        .unwrap();
 }
 
 #[embassy_executor::task]

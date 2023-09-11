@@ -1,4 +1,5 @@
-use bme680::{SettingsBuilder, OversamplingSetting, IIRFilterSize, PowerMode, FieldData};
+use bme680::{FieldData, IIRFilterSize, OversamplingSetting, PowerMode, SettingsBuilder};
+use core::time::Duration;
 use embassy_stm32::i2c::I2c;
 use embassy_stm32::time::Hertz;
 use embassy_stm32::{
@@ -8,10 +9,8 @@ use embassy_stm32::{
     interrupt::typelevel::Binding,
     Peripheral,
 };
-use embedded_hal::prelude::*;
 use embassy_time::Delay;
-use core::time::Duration;
-
+use embedded_hal::prelude::*;
 
 pub struct Measurement {
     pub temperature_celsius: f32,
@@ -22,7 +21,12 @@ pub struct Measurement {
 
 impl From<FieldData> for Measurement {
     fn from(value: FieldData) -> Self {
-        Measurement { temperature_celsius: value.temperature_celsius(), pressure_hpa: value.pressure_hpa(), humidity_percent: value.humidity_percent(), gas_resistance_ohm: value.gas_resistance_ohm() }
+        Measurement {
+            temperature_celsius: value.temperature_celsius(),
+            pressure_hpa: value.pressure_hpa(),
+            humidity_percent: value.humidity_percent(),
+            gas_resistance_ohm: value.gas_resistance_ohm(),
+        }
     }
 }
 pub struct Bme680<'d, T: Instance> {
@@ -45,11 +49,12 @@ impl<'d, T: Instance> Bme680<'d, T> {
             NoDma,
             NoDma,
             Hertz(100_000),
-            Default::default());
+            Default::default(),
+        );
 
         let mut delayer = Delay;
         let dev = bme680::Bme680::init(i2c, &mut delayer, bme680::I2CAddress::Primary).unwrap();
-        
+
         Bme680 { delayer, dev }
     }
 
@@ -63,14 +68,21 @@ impl<'d, T: Instance> Bme680<'d, T> {
             .with_run_gas(true)
             .build();
 
-        self.dev.set_sensor_settings(&mut self.delayer, settings).unwrap();
-        let profile_duration = self.dev.get_profile_dur(&settings.0).expect("get profile duration");
-    
+        self.dev
+            .set_sensor_settings(&mut self.delayer, settings)
+            .unwrap();
+        let profile_duration = self
+            .dev
+            .get_profile_dur(&settings.0)
+            .expect("get profile duration");
+
         // Read sensor data
-        self.dev.set_sensor_mode(&mut self.delayer, PowerMode::ForcedMode).unwrap();
+        self.dev
+            .set_sensor_mode(&mut self.delayer, PowerMode::ForcedMode)
+            .unwrap();
         self.delayer.delay_ms(profile_duration.as_millis() as u32);
         let (data, _state) = self.dev.get_sensor_data(&mut self.delayer).unwrap();
-    
+
         data.into()
     }
 }
