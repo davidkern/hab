@@ -3,7 +3,6 @@
 #![feature(type_alias_impl_trait)]
 
 mod board;
-mod device;
 
 use board::{Board, OutdoorEnvSensor, StatusLed};
 

@@ -5,6 +5,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+gregarious-labs-thing = { path = "../../gregarious/gregarious-labs-thing" }
 # stm32 and USB are not yet published on crates.io - rev isn't special, just the tip of main as of this commit
 embassy-stm32 = { version = "0.1.0", features = ["nightly", "unstable-traits", "defmt", "stm32f407vg", "unstable-pac", "memory-x", "time-driver-any", "exti", "embedded-sdmmc", "chrono"], git = "https://github.com/embassy-rs/embassy.git", rev = "a4d78a655217fadcf005b0ae835eb115594dc2b2" }
 embassy-sync = { version = "0.2.0", features = ["defmt"] }
@@ -30,6 +31,7 @@ micromath = "2.0.0"
 static_cell = { version = "1.1", features = ["nightly"]}
 chrono = { version = "^0.4", default-features = false}
 bme680 = "0.6.0"
+hd44780-driver = "0.4.0"
 
 [profile.release]
 debug = 2

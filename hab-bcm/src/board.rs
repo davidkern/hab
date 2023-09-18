@@ -3,7 +3,7 @@ use embassy_stm32::{
     peripherals::{self, PD12},
 };
 
-use crate::device::{bme680::Bme680, led::Led};
+use gregarious_labs_thing::device::{bme680::Bme680, led::Led};
 
 pub type StatusLed = Led<'static, PD12>;
 pub type OutdoorEnvSensor = Bme680<'static, peripherals::I2C1>;
