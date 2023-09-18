@@ -7,11 +7,11 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 gregarious-labs-thing = { path = "../../gregarious/gregarious-labs-thing" }
 # stm32 and USB are not yet published on crates.io - rev isn't special, just the tip of main as of this commit
-embassy-stm32 = { version = "0.1.0", features = ["nightly", "unstable-traits", "defmt", "stm32f407vg", "unstable-pac", "memory-x", "time-driver-any", "exti", "embedded-sdmmc", "chrono"], git = "https://github.com/embassy-rs/embassy.git", rev = "a4d78a655217fadcf005b0ae835eb115594dc2b2" }
+embassy-stm32 = { version = "0.1.0", features = ["nightly", "unstable-traits", "defmt", "stm32f407vg", "unstable-pac", "memory-x", "time-driver-any", "exti", "embedded-sdmmc", "chrono"], git = "https://github.com/embassy-rs/embassy.git", rev = "4bfbcd6c72fadd97ef71403a1406ff437f4aa6e8" }
 embassy-sync = { version = "0.2.0", features = ["defmt"] }
 embassy-executor = { version = "0.3.0", features = ["nightly", "arch-cortex-m", "executor-thread", "executor-interrupt", "defmt", "integrated-timers"] }
-embassy-time = { version = "0.1.3", features = ["defmt", "defmt-timestamp-uptime", "unstable-traits", "tick-hz-1_000_000"], git = "https://github.com/embassy-rs/embassy.git", rev = "a4d78a655217fadcf005b0ae835eb115594dc2b2" }
-embassy-usb = { version = "0.1.0", features = ["defmt"], git = "https://github.com/embassy-rs/embassy.git", rev = "a4d78a655217fadcf005b0ae835eb115594dc2b2" }
+# embassy-time = { version = "0.1.3", features = ["defmt", "defmt-timestamp-uptime", "unstable-traits", "tick-hz-1_000_000"], git = "https://github.com/embassy-rs/embassy.git", rev = "4bfbcd6c72fadd97ef71403a1406ff437f4aa6e8" }
+embassy-usb = { version = "0.1.0", features = ["defmt"], git = "https://github.com/embassy-rs/embassy.git", rev = "4bfbcd6c72fadd97ef71403a1406ff437f4aa6e8" }
 embassy-net = { version = "0.1.0", features = ["defmt", "tcp", "dhcpv4", "medium-ethernet", "nightly"] }
 
 defmt = "0.3"

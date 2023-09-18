@@ -18,12 +18,12 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn init() -> Self {
+    pub async fn init() -> Self {
         let p = embassy_stm32::init(Default::default());
 
         Board {
-            status_led: Led::init(p.PD12),
-            outdoor_env_sensor: Bme680::init(p.I2C1, p.PB6, p.PB7, Irq),
+            status_led: Led::init(p.PD12).await,
+            outdoor_env_sensor: Bme680::init(p.I2C1, p.PB6, p.PB7, Irq).await,
         }
     }
 }

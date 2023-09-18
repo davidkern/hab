@@ -9,12 +9,12 @@ use board::{Board, OutdoorEnvSensor, StatusLed};
 use embassy_executor::Spawner;
 
 use defmt::println;
-use embassy_time::{Duration, Timer};
+use gregarious_labs_thing::embassy_time::{Duration, Timer};
 use {defmt_rtt as _, panic_probe as _};
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    let board = Board::init();
+    let board = Board::init().await;
 
     spawner.spawn(blink_status(board.status_led)).unwrap();
     spawner
